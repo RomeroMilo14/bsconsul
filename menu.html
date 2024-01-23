@@ -1,0 +1,206 @@
+<!doctype html>
+<!--[if lte IE 9]>
+<html lang="en" class="oldie">
+<![endif]-->
+<!--[if gt IE 9]><!-->
+<html lang="en">
+<!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Background Animation</title>
+  <link rel="stylesheet" media="all" href="style.css" />
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+<div class="hero"> 
+  <div class="container">
+   
+    <div class="row justify-content-center mt-5">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white text-center">
+                    <h1>Menú</h1>
+                    <h2>Facturas</h2>
+                </div>
+                <div class="card-body">
+                    
+                    <form id="login-form">
+                        <div id="menu" class="d-flex justify-content-between">
+                            <div class="logo-container">
+                                <a href="index2.html">
+                                    <img class="logo" src="logoo.png" alt="Logo 1">
+                                    <div class="logo-title">Emitidas</div>
+                                </a>
+                            </div>
+                            <div class="logo-container">
+                              <img class="logox" src="/TITULO.png" alt="Logo">
+                            </div>
+                            <div class="logo-container">
+                                <a href="index2.html">
+                                    <img class ="logo" src="logoo.png" alt="Logo 2">
+                                    <div class="logo-title">Recibidas</div>
+                                </a>
+                            </div>
+                            
+                        </div>
+                    </form>
+                    
+                </div>
+                <button class="btn btn-danger btn-sm mb-3"  id="logout-button">Cerrar Sesión</button>
+            </div>
+        </div>
+    </div>
+</div>
+  
+  <div class="cube"></div>
+  <div class="cube"></div>
+  <div class="cube"></div>
+  <div class="cube"></div>
+  <div class="cube"></div>
+</div>
+</body>
+</html>
+
+<style>
+    @import url("https://fonts.googleapis.com/css?family=Montserrat:700");
+.hero {
+  background-color: #007bff;
+  position: relative;
+  height: 100vh;
+  overflow: hidden;
+  font-family: 'Montserrat', sans-serif;
+}
+
+.hero__title {
+  color: #fff;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  -webkit-transform: translate(-50%, -50%);
+          transform: translate(-50%, -50%);
+  font-size: 50px;
+  z-index: 1;
+}
+
+.cube {
+  position: absolute;
+  top: 80vh;
+  left: 45vw;
+  width: 10px;
+  height: 10px;
+  border: solid 1px #003298;
+  -webkit-transform-origin: top left;
+          transform-origin: top left;
+  -webkit-transform: scale(0) rotate(0deg) translate(-50%, -50%);
+          transform: scale(0) rotate(0deg) translate(-50%, -50%);
+  -webkit-animation: cube 12s ease-in forwards infinite;
+          animation: cube 12s ease-in forwards infinite;
+}
+.cube:nth-child(2n) {
+  border-color: #0051f4;
+}
+.cube:nth-child(2) {
+  -webkit-animation-delay: 2s;
+          animation-delay: 2s;
+  left: 25vw;
+  top: 40vh;
+}
+.cube:nth-child(3) {
+  -webkit-animation-delay: 4s;
+          animation-delay: 4s;
+  left: 75vw;
+  top: 50vh;
+}
+.cube:nth-child(4) {
+  -webkit-animation-delay: 6s;
+          animation-delay: 6s;
+  left: 90vw;
+  top: 10vh;
+}
+.cube:nth-child(5) {
+  -webkit-animation-delay: 8s;
+          animation-delay: 8s;
+  left: 10vw;
+  top: 85vh;
+}
+.cube:nth-child(6) {
+  -webkit-animation-delay: 10s;
+          animation-delay: 10s;
+  left: 50vw;
+  top: 10vh;
+}
+ /* Estilos para el formulario flotante */
+ .floating-form {
+  position: fixed;
+  top: 0;
+  left: 0;
+  background-color: #fff; /* Fondo blanco */
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Sombra para el formulario */
+  z-index: 999; /* Asegura que el formulario esté por encima del contenido */
+}
+.floating-form .logo-container {
+  text-align: center;
+  margin-bottom: 20px;
+}
+.floating-form .logo {
+  width: 128px;
+  height: 128px;
+  cursor: pointer;
+}
+.floating-form .logo-title {
+  font-size: 18px;
+  margin-top: 10px;
+}
+.header {
+display: flex;
+align-items: center;
+}
+
+.logox {
+width: 250px; /* Ajusta el ancho de acuerdo al tamaño de tu logo */
+margin-right: 10px; /* Espacio entre el logo y el título */
+}
+
+@-webkit-keyframes cube {
+  from {
+    -webkit-transform: scale(0) rotate(0deg) translate(-50%, -50%);
+            transform: scale(0) rotate(0deg) translate(-50%, -50%);
+    opacity: 1;
+  }
+  to {
+    -webkit-transform: scale(20) rotate(960deg) translate(-50%, -50%);
+            transform: scale(20) rotate(960deg) translate(-50%, -50%);
+    opacity: 0;
+  }
+}
+
+@keyframes cube {
+  from {
+    -webkit-transform: scale(0) rotate(0deg) translate(-50%, -50%);
+            transform: scale(0) rotate(0deg) translate(-50%, -50%);
+    opacity: 1;
+  }
+  to {
+    -webkit-transform: scale(20) rotate(960deg) translate(-50%, -50%);
+            transform: scale(20) rotate(960deg) translate(-50%, -50%);
+    opacity: 0;
+  }
+}
+</style>
+
+
+
+
+<script>
+   document.getElementById('logout-button').addEventListener('click', function() {
+        // Redirige al usuario a la página de inicio de sesión (login.html)
+        window.location.href = 'index.html';
+    });
+
+    window.onbeforeunload = function() {
+      // Recargar la página
+      location.reload(true); // true para forzar la recarga desde el servidor
+    };
+</script>

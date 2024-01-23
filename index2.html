@@ -1,0 +1,1406 @@
+<!-- Agrega el enlace a xlsx.full.min.js aquí -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.8/xlsx.full.min.js"></script>
+
+<!-- Agrega el enlace a FileSaver.js aquí -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<!doctype html>
+<html>
+
+<head>
+
+
+    <meta charset="utf-8">
+    <title>Analizar CFDIs</title>
+    <meta name="description" content="Crear un resumen de los XML de los CFDI del SAT fácil de copiar a Excel.">
+    <meta name="google-site-verification" content="PC3TaeEmY-W5cFvydiTvhALt7WDwbmQFSS2DRUKQLxU" />
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet" href="css/normalize.css">
+    <link rel="stylesheet" href="css/main.css">
+    <script src="https://cdn.jsdelivr.net/npm/xml2js@0.6.2/lib/xml2js.min.js"></script>
+
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-18562188-24"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+
+        gtag('config', 'UA-18562188-24');
+    </script>
+
+</head>
+
+
+
+
+<body>
+    <div class="container">
+
+        <div class="header">
+            <img class="logo" src="/TITULO.png" alt="Logo">
+            <h1 class="titulo-principal">CFDI to Excel</h1>
+        </div>
+
+
+
+        <div id="app">
+            <div id="drop" class="dropfiles margenb" ref="drop">Arrastra los archivos XML aquí</div>
+
+            <div class="row">
+                <div class="col-sm">
+                    <table class="table table-striped table-bordered table-hover margenb" id="totales" ref="totales"
+                        style="width:320px">
+                        <tbody>
+                            <tr>
+                                <th>Cantidad</th>
+                                <td>{{cantidad}}</td>
+                            </tr>
+
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="col-sm">
+                    <div v-if="errores.length" class="alert alert-warning">
+                        <h3>Errores:</h3>
+                        <ul>
+                            <li v-for="error in errores">{{error.archivo}}: {{error.mensaje}}</li>
+                        </ul>
+                    </div>
+
+                </div>
+                
+               
+                <button class="btn btn-primary btn-sm mb-3" @click="mostrarDatos">Verificar en lista negra</button>
+
+  
+  <input type="file" id="excelFile" @change="procesarArchivo">
+
+
+                
+
+            </div>
+            <div class="tabla-contenedor">
+                <caption>Tipo Ingreso </caption> <br>
+                <button class="btn btn-primary btn-sm mb-3" onclick="toggleTbody()">Mostrar/Ocultar Tabla
+                    Ingreso</button> 
+                    <!-- <button class="btn btn-primary btn-sm mb-3" id="descargarExcel">Descargar Excel
+                    Ingreso</button>  -->
+                    <br>
+
+                <table class="table table-striped table-bordered table-hover" id="tabla" ref="tabla">
+                    <thead class="thead">
+                        <tr>
+                            <th style="background-color: #00BFFF; color: white;">Archivo</th>
+                            <th style="background-color: #00BFFF; color: white;">Tipo de Comprobante</th>
+                            <th style="background-color: #00BFFF; color: white;">Fecha</th>
+                            <th style="background-color: #00BFFF; color: white;">Fecha de Timbrado</th>
+                            <th style="background-color: #00BFFF; color: white;">Serie</th>
+                            <th style="background-color: #00BFFF; color: white;">Folio</th>
+                            <th style="background-color: #00BFFF; color: white;">Uuid</th>
+                            <th style="background-color: #00BFFF; color: white;">RFC Emisor</th>
+                            <th style="background-color: #00BFFF; color: white;">Nombre Emisor</th>
+                            <th style="background-color: #00BFFF; color: white;">RFC Receptor</th>
+                            <th style="background-color: #00BFFF; color: white;">Nombre Receptor</th>
+                            <th style="background-color: #00BFFF; color: white;">Subtotal</th>
+                            <th style="background-color: #00BFFF; color: white;">Descuento</th>
+                            <th style="background-color: #00BFFF; color: white;">Total IEPS </th>
+                            <th style="background-color: #00BFFF; color: white;">IVA </th>
+                            <th style="background-color: #00BFFF; color: white;">IVA Retenido </th>
+                            <th style="background-color: #00BFFF; color: white;">ISR Retenido </th>
+                            <th style="background-color: #00BFFF; color: white;">Total </th>
+                            <th style="background-color: #00BFFF; color: white;">Moneda</th>
+                            <!-- <th  style="background-color: #00BFFF; color: white;">Tipo de Cambio </th> -->
+                            <th style="background-color: #00BFFF; color: white;">Forma de Pago</th>
+                            <th style="background-color: #00BFFF; color: white;">Metodo de Pago</th>
+                            <th style="background-color: #00BFFF; color: white;">Conceptos</th>
+                            <th style="background-color: #00BFFF; color: white;">Estado</th>
+
+
+
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="cfdi in cfdis"
+                            v-if="cfdi.tipoDeComprobante !== 'N' && cfdi.tipoDeComprobante !== 'P' && cfdi.tipoDeComprobante !== 'T' && cfdi.tipoDeComprobante !== 'E'">
+                            <td>{{ cfdi.archivo }}</td>
+                            <td>{{ cfdi.tipoDeComprobante }}</td>
+                            <td>{{ cfdi.fecha }}</td>
+                            <td>{{ cfdi.timbreFiscalDigital.fechaTimbrado }}</td>
+                            <td>{{ cfdi.serie }}</td>
+                            <td>{{ cfdi.folio }}</td>
+                            <td>{{ cfdi.timbreFiscalDigital.uuid }}</td>
+                            <td>{{ cfdi.emisor.rfc }}</td>
+                            <td>{{ cfdi.emisor.nombre }}</td>
+                            <td>{{ cfdi.receptor.rfc }}</td>
+                            <td>{{ cfdi.receptor.nombre }}</td>
+                            <td>{{ cfdi.subTotal }}</td>
+                            <td>{{ cfdi.descuento }}</td>
+
+
+                            <td>
+                                <ul v-for="concepto in cfdi.conceptos" :key="concepto.id">
+                                    <li v-for="impuestoTraslado in concepto.impuestosTraslados"
+                                        :key="impuestoTraslado.impuesto" v-if="impuestoTraslado.impuesto === '003'">
+
+                                        Base: {{ impuestoTraslado.base }} <br> <br>
+                                        Importe: {{ impuestoTraslado.importe }} <br> <br>
+                                        Impuesto: {{ impuestoTraslado.impuesto }} <br> <br>
+                                        Tasa o cuota: {{ impuestoTraslado.tasaOCuota }} <br> <br>
+                                        Tipo factor: {{ impuestoTraslado.tipoFactor }}
+
+                                    </li>
+                                </ul>
+                            </td>
+                            <td>
+                                <ul v-for="concepto in cfdi.conceptos" :key="concepto.id">
+                                    <li v-for="impuestoTraslado in concepto.impuestosTraslados"
+                                        :key="impuestoTraslado.impuesto" v-if="impuestoTraslado.impuesto === '002'">
+
+                                        Base: {{ impuestoTraslado.base }} <br> <br>
+                                        Importe: {{ impuestoTraslado.importe }} <br> <br>
+                                        Impuesto: {{ impuestoTraslado.impuesto }} <br> <br>
+                                        Tasa o cuota: {{ impuestoTraslado.tasaOCuota }} <br> <br>
+                                        Tipo factor: {{ impuestoTraslado.tipoFactor }}
+
+                                    </li>
+                                </ul>
+                            </td>
+
+
+                            <td>
+                                <ul v-for="concepto in cfdi.conceptos" :key="concepto.id">
+                                    <li v-for="impuestoRetenido in concepto.impuestosRetenciones"
+                                        :key="impuestoRetenido.impuesto" v-if="impuestoRetenido.impuesto === '002'">
+
+                                        Base: {{ impuestoRetenido.base }} <br> <br>
+                                        Importe: {{ impuestoRetenido.importe }} <br> <br>
+                                        Impuesto: {{ impuestoRetenido.impuesto }} <br> <br>
+                                        Tasa o cuota: {{ impuestoRetenido.tasaOCuota }} <br> <br>
+                                        Tipo factor: {{ impuestoRetenido.tipoFactor }} <br> <br>
+
+                                    </li>
+                                </ul>
+                            </td>
+
+
+
+
+                            <td>
+                                <ul v-for="concepto in cfdi.conceptos" :key="concepto.id">
+                                    <li v-for="impuestoRetenido in concepto.impuestosRetenciones"
+                                        :key="impuestoRetenido.impuesto" v-if="impuestoRetenido.impuesto === '001'">
+
+                                        Base: {{ impuestoRetenido.base }} <br> <br>
+                                        Importe: {{ impuestoRetenido.importe }} <br> <br>
+                                        Impuesto: {{ impuestoRetenido.impuesto }} <br> <br>
+                                        Tasa o cuota: {{ impuestoRetenido.tasaOCuota }} <br> <br>
+                                        Tipo factor: {{ impuestoRetenido.tipoFactor }} <br> <br>
+
+                                    </li>
+                                </ul>
+                            </td>
+
+                            <td>{{ cfdi.total }}</td>
+
+
+
+
+
+                            <td>{{ cfdi.moneda }}</td>
+                            <!-- <td>tipo de cambio</td> -->
+                            <td>{{ cfdi.formaPago }}</td>
+                            <td>{{ cfdi.metodoPago }}</td>
+                            <td>
+                                <ul>
+                                    <li v-for="concepto in cfdi.conceptos">
+                                        Cantidad: {{ concepto.cantidad }} <br> <br>
+                                        Clave ProdServ: {{ concepto.claveProdServ }} <br> <br>
+                                        Clave Unidad: {{ concepto.claveUnidad }} <br> <br>
+                                        Descripción: {{ concepto.descripcion }} <br> <br>
+                                        Importe: {{ concepto.importe }} <br> <br>
+                                        <!-- <li v-for="impuesto in concepto.impuestos">
+                                            Impuesto: {{ impuesto.impuesto }}<br>
+                                            TasaOCuota: {{ impuesto.tasaOCuota }}<br>
+                                            Importe: {{ impuesto.importe }}
+                                        </li> -->
+                                        NoIdentificacion: {{ concepto.noIdentificacion }} <br> <br>
+                                        ObjetoImp: {{ concepto.objetoImp }} <br> <br>
+                                        Unidad: {{ concepto.unidad }} <br> <br>
+                                        Valor Unitario: {{ concepto.valorUnitario }} <br>
+                                        <br>
+                                    </li>
+                                </ul>
+                            </td>
+                            <td>{{ cfdi.estadoFactura }}</td>
+                            
+                              
+                              
+                              
+                            
+
+                            <!-- <td> ImpLocTrasladado: {{ cfdi.trasladosLocales[0].ImpLocTrasladado }} <br> <br>
+                                Importe: {{ cfdi.trasladosLocales[0].Importe }} <br> <br>
+                                TasadeTraslado: {{ cfdi.trasladosLocales[0].TasadeTraslado }}
+
+                            </td> -->
+
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <br><br>
+            <!-- _________________________________________________________________________________________________________                 -->
+            <div class="tabla-contenedor">
+                <caption>Tipo Traslado</caption> <br>
+                <button class="btn btn-primary btn-sm mb-3" onclick="toggleTbody3()">Mostrar/Ocultar Tabla
+                    Traslado</button> 
+                    <!-- <button class="btn btn-primary btn-sm mb-3" id="descargarExcel2">Descargar Excel
+                    Traslado</button>  -->
+                    <br>
+
+                <table id="miTabla4" class="table table-striped table-bordered table-hover">
+                    <thead class="thead">
+                        <tr>
+                            <th style="background-color: #00BFFF; color: white;">Archivo</th>
+                            <th style="background-color: #00BFFF; color: white;">Tipo de Comprobante</th>
+                            <th style="background-color: #00BFFF; color: white;">Fecha</th>
+                            <th style="background-color: #00BFFF; color: white;">Fecha de Timbrado</th>
+                            <th style="background-color: #00BFFF; color: white;">Serie</th>
+                            <th style="background-color: #00BFFF; color: white;">Folio</th>
+                            <th style="background-color: #00BFFF; color: white;">Uuid</th>
+                            <th style="background-color: #00BFFF; color: white;">RFC Emisor</th>
+                            <th style="background-color: #00BFFF; color: white;">Nombre Emisor</th>
+                            <th style="background-color: #00BFFF; color: white;">RFC Receptor</th>
+                            <th style="background-color: #00BFFF; color: white;">Nombre Receptor</th>
+                            <th style="background-color: #00BFFF; color: white;">Subtotal</th>
+                            <th style="background-color: #00BFFF; color: white;">Descuento</th>
+                            <th style="background-color: #00BFFF; color: white;">IVA </th>
+                            <th style="background-color: #00BFFF; color: white;">IVA Retenido </th>
+                            <th style="background-color: #00BFFF; color: white;">ISR Retenido </th>
+                            <th style="background-color: #00BFFF; color: white;">Moneda</th>
+                            <!-- <th style="background-color: #00BFFF; color: white;">Tipo de Cambio !</th> -->
+                            <th style="background-color: #00BFFF; color: white;">Forma de Pago</th>
+                            <th style="background-color: #00BFFF; color: white;">Metodo de Pago</th>
+                            <th style="background-color: #00BFFF; color: white;">Conceptos</th>
+                            <th style="background-color: #00BFFF; color: white;">Total IEPS </th>
+                            <th style="background-color: #00BFFF; color: white;">Uso Uuid </th>
+                            <th style="background-color: #00BFFF; color: white;">Total Impuestos Trasladados </th>
+                            <th style="background-color: #00BFFF; color: white;">Total Impuestos Retenidos </th>
+                            <th style="background-color: #00BFFF; color: white;">Total</th>
+                            <th style="background-color: #00BFFF; color: white;">Impuestos Sobre Hospedaje</th>
+                            <th style="background-color: #00BFFF; color: white;">Estado</th>
+
+                        </tr>
+                    </thead>
+
+
+                    <tbody>
+                        <tr v-for="cfdi in cfdis"
+                            v-if="cfdi.tipoDeComprobante !== 'N' && cfdi.tipoDeComprobante !== 'P' && cfdi.tipoDeComprobante !== 'I' && cfdi.tipoDeComprobante !== 'E' ">
+                            <td>{{ cfdi.archivo }}</td>
+                            <td>{{ cfdi.tipoDeComprobante }}</td>
+                            <td>{{ cfdi.fecha }}</td>
+                            <td>{{ cfdi.timbreFiscalDigital.fechaTimbrado }}</td>
+                            <td>{{ cfdi.serie }}</td>
+                            <td>{{ cfdi.folio }}</td>
+                            <td>{{ cfdi.timbreFiscalDigital.uuid }}</td>
+                            <td>{{ cfdi.emisor.rfc }}</td>
+                            <td>{{ cfdi.emisor.nombre }}</td>
+                            <td>{{ cfdi.receptor.rfc }}</td>
+                            <td>{{ cfdi.receptor.nombre }}</td>
+                            <td>{{ cfdi.subTotal }}</td>
+                            <td>{{ cfdi.descuento }}</td>
+                            <td>
+                                <ul v-for="concepto in cfdi.conceptos" :key="concepto.id">
+                                    <li v-for="impuestoTraslado in concepto.impuestosTraslados"
+                                        :key="impuestoTraslado.impuesto" v-if="impuestoTraslado.impuesto === '002'">
+
+                                        Base: {{ impuestoTraslado.base }} <br> <br>
+                                        Importe: {{ impuestoTraslado.importe }} <br> <br>
+                                        Impuesto: {{ impuestoTraslado.impuesto }} <br> <br>
+                                        Tasa o cuota: {{ impuestoTraslado.tasaOCuota }} <br> <br>
+                                        Tipo factor: {{ impuestoTraslado.tipoFactor }}
+
+                                    </li>
+                                </ul>
+                            </td>
+
+
+                            <td>
+                                <ul v-for="concepto in cfdi.conceptos" :key="concepto.id">
+                                    <li v-for="impuestoRetenido in concepto.impuestosRetenciones"
+                                        :key="impuestoRetenido.impuesto" v-if="impuestoRetenido.impuesto === '002'">
+
+                                        Base: {{ impuestoRetenido.base }} <br> <br>
+                                        Importe: {{ impuestoRetenido.importe }} <br> <br>
+                                        Impuesto: {{ impuestoRetenido.impuesto }} <br> <br>
+                                        Tasa o cuota: {{ impuestoRetenido.tasaOCuota }} <br> <br>
+                                        Tipo factor: {{ impuestoRetenido.tipoFactor }} <br> <br>
+
+                                    </li>
+                                </ul>
+                            </td>
+
+
+
+
+                            <td>
+                                <ul v-for="concepto in cfdi.conceptos" :key="concepto.id">
+                                    <li v-for="impuestoRetenido in concepto.impuestosRetenciones"
+                                        :key="impuestoRetenido.impuesto" v-if="impuestoRetenido.impuesto === '001'">
+
+                                        Base: {{ impuestoRetenido.base }} <br> <br>
+                                        Importe: {{ impuestoRetenido.importe }} <br> <br>
+                                        Impuesto: {{ impuestoRetenido.impuesto }} <br> <br>
+                                        Tasa o cuota: {{ impuestoRetenido.tasaOCuota }} <br> <br>
+                                        Tipo factor: {{ impuestoRetenido.tipoFactor }} <br> <br>
+
+                                    </li>
+                                </ul>
+                            </td>
+
+
+
+
+
+                            <td>{{ cfdi.moneda }}</td>
+                            <!-- <td>tipo de cambio</td> -->
+                            <td>{{ cfdi.formaPago }}</td>
+                            <td>{{ cfdi.metodoPago }}</td>
+                            <td>
+                                <ul>
+                                    <li v-for="concepto in cfdi.conceptos">
+                                        Cantidad: {{ concepto.cantidad }} <br> <br>
+                                        Clave ProdServ: {{ concepto.claveProdServ }} <br> <br>
+                                        Clave Unidad: {{ concepto.claveUnidad }} <br> <br>
+                                        Descripción: {{ concepto.descripcion }} <br> <br>
+                                        Importe: {{ concepto.importe }} <br> <br>
+                                        <!-- <li v-for="impuesto in concepto.impuestos">
+                            Impuesto: {{ impuesto.impuesto }}<br>
+                            TasaOCuota: {{ impuesto.tasaOCuota }}<br>
+                            Importe: {{ impuesto.importe }}
+                        </li> -->
+                                        NoIdentificacion: {{ concepto.noIdentificacion }} <br> <br>
+                                        ObjetoImp: {{ concepto.objetoImp }} <br> <br>
+                                        Unidad: {{ concepto.unidad }} <br> <br>
+                                        Valor Unitario: {{ concepto.valorUnitario }} <br>
+                                        <br>
+                                    </li>
+                                </ul>
+                            </td>
+                            <td>
+                                <ul v-for="concepto in cfdi.conceptos" :key="concepto.id">
+                                    <li v-for="impuestoTraslado in concepto.impuestosTraslados"
+                                        :key="impuestoTraslado.impuesto" v-if="impuestoTraslado.impuesto === '003'">
+
+                                        Base: {{ impuestoTraslado.base }} <br> <br>
+                                        Importe: {{ impuestoTraslado.importe }} <br> <br>
+                                        Impuesto: {{ impuestoTraslado.impuesto }} <br> <br>
+                                        Tasa o cuota: {{ impuestoTraslado.tasaOCuota }} <br> <br>
+                                        Tipo factor: {{ impuestoTraslado.tipoFactor }}
+
+                                    </li>
+                                </ul>
+                            </td>
+
+                            <td>{{ cfdi.receptor.usoCFDI }}</td>
+                            <td>{{ cfdi.totalimpuestostrasladados }}</td>
+                            <td>{{ cfdi.totalimpuestosretenidos }}</td>
+                            <td>{{ cfdi.total }}</td>
+                            <td>{{ cfdi.trasladosLocales.ImpLocTrasladado }} </td>
+                            <td>{{ cfdi.estadoFactura }} </td>
+                            
+
+
+
+
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <br>
+            <br>
+
+
+
+
+            <div class="tabla-contenedor">
+                <caption>Tipo nomina</caption> <br>
+                <button class="btn btn-primary btn-sm mb-3" onclick="toggleTbody4()">Mostrar/Ocultar Tabla
+                    Nomina</button> 
+                    <!-- <button class="btn btn-primary btn-sm mb-3" id="descargarExcel3">Descargar Excel
+                    Nomina</button> -->
+                     <br>
+
+                <table id="miTabla" class="table table-striped table-bordered table-hover">
+                    <thead class="thead">
+                        <tr>
+                            <th style="background-color: #00BFFF; color: white;">Archivo</th>
+                            <th style="background-color: #00BFFF; color: white;">Fecha</th>
+                            <th style="background-color: #00BFFF; color: white;">Fecha de Timbrado</th>
+                            <th style="background-color: #00BFFF; color: white;">Serie</th>
+                            <th style="background-color: #00BFFF; color: white;">RFC Emisor</th>
+                            <th style="background-color: #00BFFF; color: white;">Nombre Emisor</th>
+                            <th style="background-color: #00BFFF; color: white;">Curp Emisor</th>
+                            <th style="background-color: #00BFFF; color: white;">RegistroPatr Emisor</th>
+                            <th style="background-color: #00BFFF; color: white;">Regimen Fiscal</th>
+                            <th style="background-color: #00BFFF; color: white;">Folio</th>
+                            <th style="background-color: #00BFFF; color: white;">Tipo de Comprobante</th>
+                            <th style="background-color: #00BFFF; color: white;">Fecha de Timbrado</th>
+                            <th style="background-color: #00BFFF; color: white;">Uuid</th>
+                            <th style="background-color: #00BFFF; color: white;">RFC Receptor</th>
+                            <th style="background-color: #00BFFF; color: white;">Nombre Receptor</th>
+                            <th style="background-color: #00BFFF; color: white;">Subtotal</th>
+                            <th style="background-color: #00BFFF; color: white;">Descuento</th>
+                            <th style="background-color: #00BFFF; color: white;">Moneda</th>
+                            <th style="background-color: #00BFFF; color: white;">Metodo de Pago</th>
+                            <th style="background-color: #00BFFF; color: white;">Forma de Pago</th>
+                            <th style="background-color: #00BFFF; color: white;">Conceptos</th>
+                            <th style="background-color: #00BFFF; color: white;">Tipo Nomina</th>
+                            <th style="background-color: #00BFFF; color: white;">Fecha Pago </th>
+                            <th style="background-color: #00BFFF; color: white;">Fecha Inicial Pago </th>
+                            <th style="background-color: #00BFFF; color: white;">Fecha Final Pago </th>
+                            <th style="background-color: #00BFFF; color: white;">NumDiasPagados </th>
+                            <th style="background-color: #00BFFF; color: white;">Total Persepciones </th>
+                            <th style="background-color: #00BFFF; color: white;">Total Deducciones </th>
+                            <th style="background-color: #00BFFF; color: white;">Total Otro Pagos </th>
+                            <th style="background-color: #00BFFF; color: white;">Total </th>
+                            <th style="background-color: #00BFFF; color: white;">Regimen Fiscal </th>
+                            <th style="background-color: #00BFFF; color: white;">Version </th>
+                            <!-- <th style="background-color: #00BFFF; color: white;">Tipo de cambio </th> -->
+                            <th style="background-color: #00BFFF; color: white;">Receptor curp</th>
+                            <th style="background-color: #00BFFF; color: white;">NumSegSocial</th>
+                            <th style="background-color: #00BFFF; color: white;">FechaInicioRelLaboral</th>
+                            <th style="background-color: #00BFFF; color: white;">Antiguedad</th>
+                            <th style="background-color: #00BFFF; color: white;">Tipo Contrato</th>
+                            <th style="background-color: #00BFFF; color: white;">Tipo Jornada</th>
+                            <th style="background-color: #00BFFF; color: white;">Tipo Regimen</th>
+                            <th style="background-color: #00BFFF; color: white;">Num Empleado</th>
+                            <th style="background-color: #00BFFF; color: white;">Periocidad Pago</th>
+                            <th style="background-color: #00BFFF; color: white;">SalarioBaseCotApor</th>
+                            <th style="background-color: #00BFFF; color: white;">salarioDiarioIntegrado</th>
+                            <th style="background-color: #00BFFF; color: white;">ClaveEntFed</th>
+                            <th style="background-color: #00BFFF; color: white;">TotalSueldoPer</th>
+                            <th style="background-color: #00BFFF; color: white;">TotalSepIndemPer</th>
+                            <th style="background-color: #00BFFF; color: white;">TotalGravadoPer</th>
+                            <th style="background-color: #00BFFF; color: white;">TotalExento</th>
+                            <th style="background-color: #00BFFF; color: white;">TotalOtrasDed</th>
+                            <th style="background-color: #00BFFF; color: white;">TotalImpuestosRetenidoDed</th>
+                            <th style="background-color: #00BFFF; color: white;">Estado</th>
+
+
+
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="cfdi in cfdis"
+                            v-if="cfdi.tipoDeComprobante !== 'I' && cfdi.tipoDeComprobante !== 'P' && cfdi.tipoDeComprobante !== 'T' && cfdi.tipoDeComprobante !== 'E'">
+                            <td>{{ cfdi.archivo }}</td>
+                            <td>{{ cfdi.fecha }}</td>
+                            <td>{{ cfdi.timbreFiscalDigital.fechaTimbrado }}</td>
+                            <td>{{ cfdi.serie }}</td>
+                            <td>{{ cfdi.emisor.rfc }}</td>
+                            <td>{{ cfdi.emisor.nombre }}</td>
+                            <td>{{ cfdi.nomina.emisor.Curp }}</td>
+                            <td>{{ cfdi.nomina.emisor.registroPatronal }}</td>
+                            <td>{{ cfdi.emisor.regimenFiscal }}</td>
+                            <td>{{ cfdi.folio }}</td>
+                            <td>{{ cfdi.tipoDeComprobante }}</td>
+                            <td>{{ cfdi.timbreFiscalDigital.fechaTimbrado }}</td>
+                            <td>{{ cfdi.timbreFiscalDigital.uuid }}</td>
+                            <td>{{ cfdi.receptor.rfc }}</td>
+                            <td>{{ cfdi.receptor.nombre }}</td>
+                            <td>{{ cfdi.subTotal }}</td>
+                            <td>{{ cfdi.descuento }}</td>
+                            <td>{{ cfdi.moneda }}</td>
+                            <td>{{ cfdi.metodoPago }}</td>
+                            <td>{{ cfdi.formaPago }}</td>
+                            <td>
+                                <ul>
+                                    <li v-for="concepto in cfdi.conceptos">
+                                        Cantidad: {{ concepto.cantidad }} <br>
+                                        Clave ProdServ: {{ concepto.claveProdServ }} <br>
+                                        Clave Unidad: {{ concepto.claveUnidad }} <br>
+                                        Descripción: {{ concepto.descripcion }} <br>
+                                        Importe: {{ concepto.importe }} <br>
+                                        <!-- <li v-for="impuesto in concepto.impuestos">
+                                          Impuesto: {{ impuesto.impuesto }}<br>
+                                          TasaOCuota: {{ impuesto.tasaOCuota }}<br>
+                                          Importe: {{ impuesto.importe }}
+                                      </li> -->
+                                        NoIdentificacion: {{ concepto.noIdentificacion }} <br>
+                                        ObjetoImp: {{ concepto.objetoImp }} <br>
+                                        Unidad: {{ concepto.unidad }} <br>
+                                        Valor Unitario: {{ concepto.valorUnitario }} <br>
+                                        <br>
+                                    </li>
+                                </ul>
+                            </td>
+                            <td>{{ cfdi.nomina.tipoNomina }}</td>
+                            <td>{{ cfdi.nomina.fechaPago }}</td>
+                            <td>{{ cfdi.nomina.fechaInicialPago }}</td>
+                            <td>{{ cfdi.nomina.fechaFinalPago }}</td>
+                            <td>{{ cfdi.nomina.numDiasPagados }}</td>
+                            <td>{{ cfdi.nomina.totalPercepciones }}</td>
+                            <td>{{ cfdi.nomina.totalDeducciones }}</td>
+                            <td>{{ cfdi.nomina.totalOtrosPagos }}</td>
+                            <td>{{ cfdi.total }}</td>
+                            <td>{{ cfdi.emisor.regimenFiscal }}</td>
+                            <td>{{ cfdi.version }}</td>
+                            <!-- <td>tipo de cambio</td> -->
+                            <td>{{ cfdi.nomina.receptor.curp }} </td>
+                            <td>{{ cfdi.nomina.receptor.numSeguridadSocial}} </td>
+                            <td>{{ cfdi.nomina.receptor.fechaInicioRelLaboral}} </td>
+                            <td>{{ cfdi.nomina.receptor.antiguedad}} </td>
+                            <td>{{ cfdi.nomina.receptor.tipoContrato}} </td>
+                            <td>{{ cfdi.nomina.receptor.tipoJornada}} </td>
+                            <td>{{ cfdi.nomina.receptor.tipoRegimen}} </td>
+                            <td>{{ cfdi.nomina.receptor.numEmpleado}} </td>
+                            <td>{{ cfdi.nomina.receptor.periodicidadPago}} </td>
+                            <td>{{ cfdi.nomina.receptor.salarioBaseCotApor}} </td>
+                            <td>{{ cfdi.nomina.receptor.salarioDiarioIntegrado}} </td>
+                            <td>{{ cfdi.nomina.receptor.claveEntFed}} </td>
+                            <td>{{ cfdi.nomina.percepciones.totalSueldos}} </td>
+                            <td>{{ cfdi.nomina.separacionIndemnizacion.totalPagado}} </td>
+                            <td>{{ cfdi.nomina.percepciones.totalGravado}} </td>
+                            <td>{{ cfdi.nomina.percepciones.totalExento}} </td>
+                            <td>{{ cfdi.nomina.deducciones.TotalOtrasDeducciones}} </td>
+                            <td>{{ cfdi.nomina.deducciones.totalImpuestosRetenidos}} </td>
+                            <td>{{ cfdi.estadoFactura}} </td>
+
+
+
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <br>
+            <br>
+
+
+
+
+
+
+
+
+            <div class="tabla-contenedor">
+                <caption>Tipo Pago </caption> <br>
+                <button class="btn btn-primary btn-sm mb-3" onclick="toggleTbody2()">Mostrar/Ocultar Tabla Pago</button>
+                <!-- <button class="btn btn-primary btn-sm mb-3" id="descargarExcel4">Descargar Excel Pago</button> <br> -->
+
+                <table id="miTabla3" class="table table-striped table-bordered table-hover">
+                    <thead class="thead">
+                        <tr>
+                            <th style="background-color: #00BFFF; color: white;">Archivo</th>
+                            <th style="background-color: #00BFFF; color: white;">Tipo de Comprobante</th>
+                            <th style="background-color: #00BFFF; color: white;">Fecha</th>
+                            <th style="background-color: #00BFFF; color: white;">Folio</th>
+                            <th style="background-color: #00BFFF; color: white;">Uuid</th>
+                            <th style="background-color: #00BFFF; color: white;">RFC Emisor</th>
+                            <th style="background-color: #00BFFF; color: white;">Nombre Emisor</th>
+                            <th style="background-color: #00BFFF; color: white;">RFC Receptor</th>
+                            <th style="background-color: #00BFFF; color: white;">Nombre Receptor</th>
+                            <th style="background-color: #00BFFF; color: white;">Fecha de Pago</th>
+                            <th style="background-color: #00BFFF; color: white;">Forma de Pago</th>
+                            <th style="background-color: #00BFFF; color: white;">Monto</th>
+                            <th style="background-color: #00BFFF; color: white;">Uuid de Relación</th>
+                            <th style="background-color: #00BFFF; color: white;">Estado</th>
+
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="cfdi in cfdis"
+                            v-if="cfdi.tipoDeComprobante !== 'N' && cfdi.tipoDeComprobante !== 'I' && cfdi.tipoDeComprobante !== 'T' && cfdi.tipoDeComprobante !== 'E'">
+                            <td>{{ cfdi.archivo }}</td>
+                            <td>{{ cfdi.tipoDeComprobante }}</td>
+                            <td>{{ cfdi.fecha }}</td>
+                            <td>{{ cfdi.folio }}</td>
+                            <td>{{ cfdi.timbreFiscalDigital.uuid }}</td>
+                            <td>{{ cfdi.emisor.rfc }}</td>
+                            <td>{{ cfdi.emisor.nombre }}</td>
+                            <td>{{ cfdi.receptor.rfc }}</td>
+                            <td>{{ cfdi.receptor.nombre }}</td>
+                            <td>{{ cfdi.complemento && cfdi.complemento.pago && cfdi.complemento.pago.fechaPago ? cfdi.complemento.pago.fechaPago : '' }}</td>
+
+                            <td>{{ cfdi.complemento && cfdi.complemento.pago && cfdi.complemento.pago.formaDePagoP ? cfdi.complemento.pago.formaDePagoP : '' }}</td>
+                            <td>{{ cfdi.complemento && cfdi.complemento.pago && cfdi.complemento.pago.monto ? cfdi.complemento.pago.monto : '' }}</td>
+                            <td>{{ cfdi.cfdiRelacionados && cfdi.cfdiRelacionados.uuid ? cfdi.cfdiRelacionados.uuid : '' }}</td>
+                            <td>{{ cfdi.estadoFactura }}</td>
+
+
+
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <!-- ---------------------------------------------------------- -->
+
+            <div class="tabla-contenedor">
+                <caption>Tipo Nota de Credito </caption> <br>
+                <button class="btn btn-primary btn-sm mb-3" onclick="toggleTbody5()">Mostrar/Ocultar Tabla Pago</button>
+                 <!-- <button class="btn btn-primary btn-sm mb-3" id="descargarExcel9">Descargar Excel Nota de Credito</button> <br> -->
+
+                <table id="miTabla9" class="table table-striped table-bordered table-hover">
+                    <thead class="thead">
+                        <tr>
+                            <th style="background-color: #00BFFF; color: white;">Archivo</th>
+  
+  <th style="background-color: #00BFFF; color: white;">No Certificado Emisor</th>
+  <th style="background-color: #00BFFF; color: white;">No Certificado SAT</th>
+  <th style="background-color: #00BFFF; color: white;">Version</th>
+  <th style="background-color: #00BFFF; color: white;">Tipo de Comprobante</th> 
+  <th style="background-color: #00BFFF; color: white;">Tipo</th> 
+  <th style="background-color: #00BFFF; color: white;">Fecha Emision</th> 
+  <th style="background-color: #00BFFF; color: white;">Fecha Timbrado</th>
+  <th style="background-color: #00BFFF; color: white;">Año</th>  
+  <th style="background-color: #00BFFF; color: white;">Mes</th> 
+  <th style="background-color: #00BFFF; color: white;">Dia</th> 
+  <th style="background-color: #00BFFF; color: white;">Estado Pago </th>
+  <th style="background-color: #00BFFF; color: white;">Fecha Pago</th>
+  <th style="background-color: #00BFFF; color: white;">Serie</th>
+  <th style="background-color: #00BFFF; color: white;">Folio</th>
+  <th style="background-color: #00BFFF; color: white;">Uuid</th> 
+  <th style="background-color: #00BFFF; color: white;">TipoRelacion</th> 
+  <th style="background-color: #00BFFF; color: white;">Uuid Relacion</th> 
+  <th style="background-color: #00BFFF; color: white;">RFC Emisor</th>
+  <th style="background-color: #00BFFF; color: white;">Nombre Emisor</th>
+  <th style="background-color: #00BFFF; color: white;">RegimenFiscal Emisor</th> 
+  <th style="background-color: #00BFFF; color: white;">LugarDeExpedicion</th> 
+  <th style="background-color: #00BFFF; color: white;">RFC Receptor</th>
+  <th style="background-color: #00BFFF; color: white;">Nombre Receptor</th>
+  <th style="background-color: #00BFFF; color: white;">ResidenciaFiscal </th> 
+  <th style="background-color: #00BFFF; color: white;">NumRegldTrib  </th> 
+  <th style="background-color: #00BFFF; color: white;">UsoCFDI</th>
+  <th style="background-color: #00BFFF; color: white;">Subtotal</th>  
+  <th style="background-color: #00BFFF; color: white;">Descuento</th>
+  <th style="background-color: #00BFFF; color: white;">Total IEPS</th> 
+  <th style="background-color: #00BFFF; color: white;">IVA 16%</th>  
+  <th style="background-color: #00BFFF; color: white;">Retenido IVA</th> 
+  <th style="background-color: #00BFFF; color: white;">Retenido ISR</th> 
+  <th style="background-color: #00BFFF; color: white;">ISH</th> 
+  <th style="background-color: #00BFFF; color: white;">Total</th> 
+  <th style="background-color: #00BFFF; color: white;">Total Traslados</th>
+  <th style="background-color: #00BFFF; color: white;">Total Retenidos</th>  
+  <th style="background-color: #00BFFF; color: white;">Total LocalTraslado</th> 
+  <th style="background-color: #00BFFF; color: white;">Total LocalRetenido</th> 
+  <th style="background-color: #00BFFF; color: white;">Complemento </th> 
+  <th style="background-color: #00BFFF; color: white;">Moneda</th> 
+  <th style="background-color: #00BFFF; color: white;">Forma de Pago</th> 
+  <th style="background-color: #00BFFF; color: white;">Metodo de pago</th> 
+  <th style="background-color: #00BFFF; color: white;">NumCtaPago </th> 
+  <th style="background-color: #00BFFF; color: white;">Condicion dePago</th>
+  <th style="background-color: #00BFFF; color: white;">Conceptos</th> 
+  <th style="background-color: #00BFFF; color: white;">Combustible </th> 
+  <th style="background-color: #00BFFF; color: white;">IEPS 3%</th> 
+  <th style="background-color: #00BFFF; color: white;">IEPS 6%</th>
+  <th style="background-color: #00BFFF; color: white;">IEPS 7%</th>
+  <th style="background-color: #00BFFF; color: white;">IEPS 8%</th>
+  <th style="background-color: #00BFFF; color: white;">IEPS 9%</th>  
+  <th style="background-color: #00BFFF; color: white;">IEPS 26.5%</th>  
+  <th style="background-color: #00BFFF; color: white;">IEPS 30%</th>  
+  <th style="background-color: #00BFFF; color: white;">IEPS 53%</th>
+  <th style="background-color: #00BFFF; color: white;">IEPS 160%</th> 
+  <th style="background-color: #00BFFF; color: white;">Archivo</th>
+  <th style="background-color: #00BFFF; color: white;">Direccion Emisor</th> 
+  <th style="background-color: #00BFFF; color: white;">LocalidadEmisor</th>   
+  <th style="background-color: #00BFFF; color: white;">Direccion Receptor</th>  
+  <th style="background-color: #00BFFF; color: white;">Localidad Receptor</th> 
+  <th style="background-color: #00BFFF; color: white;">IVA 8%</th> 
+  <th style="background-color: #00BFFF; color: white;">IVA 30.4%</th> 
+  <th style="background-color: #00BFFF; color: white;">IVA Ret 6%</th> 
+  <th style="background-color: #00BFFF; color: white;">RegimenFiscalReceptor</th>
+  <th style="background-color: #00BFFF; color: white;">DomicilioFiscalReceptor</th>  
+  <th style="background-color: #00BFFF; color: white;">Estado</th>
+
+
+
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="cfdi in cfdis"
+                            v-if="cfdi.tipoDeComprobante !== 'N' && cfdi.tipoDeComprobante !== 'I' && cfdi.tipoDeComprobante !== 'T' && cfdi.tipoDeComprobante !== 'P'">
+                            <td>{{ cfdi.archivo }}</td>
+  
+  <td>{{ cfdi.noCertificado }}</td>
+  <td>{{ cfdi.timbreFiscalDigital.noCertificadoSAT }}</td>
+  <td>{{ cfdi.version }}</td>
+  <td>{{ cfdi.tipoDeComprobante }}</td>
+  <td>Nota de credito</td>
+  <td>{{ cfdi.fecha }}</td>
+  <td>{{ cfdi.timbreFiscalDigital.fechaTimbrado}}</td>
+  <td>{{ new Date(cfdi.fecha).getFullYear() }}</td>
+  <td>{{ new Date(cfdi.fecha).getMonth() + 1 }}</td>
+  <td>{{ new Date(cfdi.fecha).getDate() }}</td>
+  <td></td>
+  <td>{{ cfdi.complemento && cfdi.complemento.pago && cfdi.complemento.pago.fechaPago ? cfdi.complemento.pago.fechaPago : '' }}</td>
+  <td>{{ cfdi.serie }}</td>
+  <td>{{ cfdi.folio }}</td>
+  <td>{{ cfdi.timbreFiscalDigital.uuid }}</td>
+  <td>{{ cfdi.cfdiRelacionados.tipoRelacion }}</td>
+  <td>{{ cfdi.cfdiRelacionados.uuid }}</td>
+  <td>{{ cfdi.emisor.rfc }}</td>
+  <td>{{ cfdi.emisor.nombre }}</td>
+  <td>{{ cfdi.emisor.regimenFiscal }}</td>
+  <td>{{ cfdi.lugarExpedicion }}</td>
+  <td>{{ cfdi.receptor.rfc }}</td>
+  <td>{{ cfdi.receptor.nombre }}</td> 
+  <td></td>
+  <td></td>
+  <td>{{ cfdi.receptor.usoCFDI }}</td> 
+  <td>{{ cfdi.subTotal }}</td>
+  <td>{{ cfdi.descuento }}</td>
+  <td>
+    <ul v-for="concepto in cfdi.conceptos" :key="concepto.id">
+      <li v-for="impuestoTraslado in concepto.impuestosTraslados" :key="impuestoTraslado.impuesto" v-if="impuestoTraslado.impuesto === '003'">
+        
+          Base: {{ impuestoTraslado.base }} <br> <br>
+          Importe: {{ impuestoTraslado.importe }} <br> <br>
+          Impuesto: {{ impuestoTraslado.impuesto }} <br> <br>
+          Tasa o cuota: {{ impuestoTraslado.tasaOCuota }} <br> <br>
+          Tipo factor: {{ impuestoTraslado.tipoFactor }}
+        
+      </li>
+    </ul>
+  </td>
+
+  <td>
+    <ul v-for="concepto in cfdi.conceptos" :key="concepto.id">
+      <li v-for="impuestoTraslado in concepto.impuestosTraslados" :key="impuestoTraslado.impuesto" v-if="impuestoTraslado.impuesto === '002'">
+        
+          Base: {{ impuestoTraslado.base }} <br> <br>
+          Importe: {{ impuestoTraslado.importe }} <br> <br>
+          Impuesto: {{ impuestoTraslado.impuesto }} <br> <br>
+          Tasa o cuota: {{ impuestoTraslado.tasaOCuota }} <br> <br>
+          Tipo factor: {{ impuestoTraslado.tipoFactor }}
+        
+      </li>
+    </ul>
+  </td>
+
+  <td>
+    <ul v-for="concepto in cfdi.conceptos" :key="concepto.id">
+      <li v-for="impuestoRetenido in concepto.impuestosRetenciones" :key="impuestoRetenido.impuesto" v-if="impuestoRetenido.impuesto === '002'">
+        
+          Base: {{ impuestoRetenido.base }} <br> <br>
+          Importe: {{ impuestoRetenido.importe }} <br> <br>
+          Impuesto: {{ impuestoRetenido.impuesto }} <br> <br>
+          Tasa o cuota: {{ impuestoRetenido.tasaOCuota }} <br> <br>
+          Tipo factor: {{ impuestoRetenido.tipoFactor }} <br> <br>
+        
+      </li>
+    </ul>
+  </td>
+
+  <td>
+    <ul v-for="concepto in cfdi.conceptos" :key="concepto.id">
+      <li v-for="impuestoRetenido in concepto.impuestosRetenciones" :key="impuestoRetenido.impuesto" v-if="impuestoRetenido.impuesto === '001'">
+        
+          Base: {{ impuestoRetenido.base }} <br> <br>
+          Importe: {{ impuestoRetenido.importe }} <br> <br>
+          Impuesto: {{ impuestoRetenido.impuesto }} <br> <br>
+          Tasa o cuota: {{ impuestoRetenido.tasaOCuota }} <br> <br>
+          Tipo factor: {{ impuestoRetenido.tipoFactor }} <br> <br>
+        
+      </li>
+    </ul>
+  </td>
+  <td>{{ cfdi.trasladosLocales.ImpLocTrasladado }} </td>
+  <td>{{ cfdi.total }}</td>
+  <td>{{ cfdi.totalimpuestostrasladados }}</td>
+  <td>{{ cfdi.totalimpuestosretenidos }}</td>
+  <td>{{ cfdi.impuestosLocales && cfdi.impuestosLocales.totalTraslados ? cfdi.impuestosLocales.totalTraslados : '' }}</td>
+  <td>{{ cfdi.impuestosLocales && cfdi.impuestosLocales.totalRetenciones ? cfdi.impuestosLocales.totalRetenciones : '' }}</td>
+  <td></td>
+  <td>{{ cfdi.moneda }}</td>
+  <td>{{ cfdi.formaPago }}</td>
+  <td>{{ cfdi.metodoPago }}</td>
+  <td></td>
+  <td>{{ cfdi.condicionPago }}</td>
+  <td>
+    <ul>
+        <li v-for="concepto in cfdi.conceptos">
+            Cantidad: {{ concepto.cantidad }} <br>
+            Clave ProdServ: {{ concepto.claveProdServ }} <br>
+            Clave Unidad: {{ concepto.claveUnidad }} <br>
+            Descripción: {{ concepto.descripcion }} <br>
+            Importe: {{ concepto.importe }} <br>
+           
+            NoIdentificacion: {{ concepto.noIdentificacion }} <br>
+            ObjetoImp: {{ concepto.objetoImp }} <br>
+            Unidad: {{ concepto.unidad }} <br>
+            Valor Unitario: {{ concepto.valorUnitario }} <br>
+            <br>
+        </li>
+    </ul>
+</td>
+<td></td>
+<td></td>
+<td>
+    <ul v-for="concepto in cfdi.conceptos" :key="concepto.id">
+        <li v-for="impuestoTraslado in concepto.impuestosTraslados"
+            :key="impuestoTraslado.impuesto" v-if="impuestoTraslado.tasaOCuota === '0.060000'">
+
+            Base: {{ impuestoTraslado.base }} <br> <br>
+            Importe: {{ impuestoTraslado.importe }} <br> <br>
+            Impuesto: {{ impuestoTraslado.impuesto }} <br> <br>
+            Tasa o cuota: {{ impuestoTraslado.tasaOCuota }} <br> <br>
+            Tipo factor: {{ impuestoTraslado.tipoFactor }}
+
+        </li>
+    </ul>
+</td>
+
+  
+
+<td>
+    <ul v-for="traslado in cfdi.impuestos.trasladosQuery.filter(traslado => traslado.TasaOCuota === '0.070000')"
+      :key="traslado.impuesto">
+      <li>
+        <p>Impuesto: {{ traslado.impuesto }}</p>
+        <p>Tasa o cuota: {{ traslado.TasaOCuota }}</p> <!-- Ajusta a TasaOCuota -->
+        <p>Importe: {{ traslado.importe }}</p>
+      </li>
+    </ul>
+  </td>
+
+  <td></td>
+
+
+<td>
+    <ul v-for="traslado in cfdi.impuestos.trasladosQuery.filter(traslado => traslado.TasaOCuota === '0.090000')"
+      :key="traslado.impuesto">
+      <li>
+        <p>Impuesto: {{ traslado.impuesto }}</p>
+        <p>Tasa o cuota: {{ traslado.TasaOCuota }}</p> <!-- Ajusta a TasaOCuota -->
+        <p>Importe: {{ traslado.importe }}</p>
+      </li>
+    </ul>
+  </td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>{{ cfdi.archivo }}</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>{{ cfdi.receptor.regimenFiscalReceptor }}</td>
+<td>{{ cfdi.receptor.domicilioFiscalReceptor}}</td>
+
+<td>{{ cfdi.estadoFactura }}</td>
+
+
+
+
+
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+        <br>
+        <br>
+
+        <!-- ------------------------------------------------------------------------------------------------ -->
+
+
+       
+       
+        <input type="text" id="nombreZIP" class="form-control mb-3" placeholder="Nombre de la carpeta">
+        <button onclick="convertirAYAgregarExcel()" class="btn btn-primary">Guardar Excel</button>
+        <button onclick="descargarZIP()" class="btn btn-success">Descargar carpeta</button>
+        <div id="mensajeExito" class="mt-3 alert alert-success" style="display: none;">El archivo Excel se agregó a la carpeta con éxito.</div>
+        <div id="mensajeExito" class="mt-3 alert alert-success" style="display: none;">El archivo Excel se agregó a la carpeta con éxito.</div>
+        <div id="mensajeError" class="mt-3 alert alert-danger" style="display: none;">¡Ups! Hubo un problema al guardar el archivo Excel en la carpeta.</div>
+        <br>
+        <br>
+        <button class="btn btn-danger btn-sm mb-3" id="logout-button">Regresar al menú</button>
+
+    </div>
+
+
+
+
+    </div> <!-- container -->
+
+    <!-- jquery -->
+    <script src="https://code.jquery.com/jquery-1.10.2.js"></script>
+
+    <!-- vue -->
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.5.16/vue.js"></script> -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.5.16/vue.min.js"></script>
+
+    <script src="js/cargarxml.js?v=1.1.1"></script>
+    <script src="js/main.js?v=1.1.1"></script>
+
+</body>
+
+</html>
+
+
+
+<!-- //.---------------------------------------------------------------------- -->
+<style>
+    thead {
+        background-color: #0091ea;
+        /* Cambiar a tu tono de azul "azul bondi" */
+        color: white;
+        /* Color de texto en el encabezado */
+    }
+
+    .header {
+        display: flex;
+        align-items: center;
+    }
+
+    .logo {
+        width: 250px;
+        /* Ajusta el ancho de acuerdo al tamaño de tu logo */
+        margin-right: 10px;
+        /* Espacio entre el logo y el título */
+    }
+
+    .titulo-principal {
+        font-size: 24px;
+        /* Tamaño del título */
+    }
+    h5 {
+  font-size: 1em;
+  text-align: center;
+  color: #000;
+  
+  border-radius: 5px;
+  box-shadow: 0 0 1px #000;
+}
+</style>
+
+
+
+
+
+
+<script>
+    
+
+    function s2ab(s) {
+        var buf = new ArrayBuffer(s.length);
+        var view = new Uint8Array(buf);
+        for (var i = 0; i != s.length; ++i) view[i] = s.charCodeAt(i) & 0xff;
+        return buf;
+    }
+    // ___________________________________________________________________________
+
+    function toggleTbody() {
+        var tbody = document.getElementById('tabla').getElementsByTagName('tbody')[0];
+        tbody.style.display = (tbody.style.display === 'none') ? 'table-row-group' : 'none';
+    }
+    // ___________________________________________________________________________
+    function toggleTbody2() {
+        var tbody = document.getElementById('miTabla3').getElementsByTagName('tbody')[0];
+        tbody.style.display = (tbody.style.display === 'none') ? 'table-row-group' : 'none';
+    }
+    function toggleTbody3() {
+        var tbody = document.getElementById('miTabla4').getElementsByTagName('tbody')[0];
+        tbody.style.display = (tbody.style.display === 'none') ? 'table-row-group' : 'none';
+    }
+    // ___________________________________________________________________________
+    function toggleTbody4() {
+        var tbody = document.getElementById('miTabla').getElementsByTagName('tbody')[0];
+        tbody.style.display = (tbody.style.display === 'none') ? 'table-row-group' : 'none';
+    }
+    function toggleTbody5() {
+      var tbody = document.getElementById('miTabla9').getElementsByTagName('tbody')[0];
+      tbody.style.display = (tbody.style.display === 'none') ? 'table-row-group' : 'none';
+    }
+
+    window.onbeforeunload = function () {
+        // Recargar la página
+        location.reload(true); // true para forzar la recarga desde el servidor
+    };
+</script>
+
+
+
+
+<style>
+    .header {
+        display: flex;
+        align-items: center;
+    }
+
+    .logo {
+        width: 250px;
+        /* Ajusta el ancho de acuerdo al tamaño de tu logo */
+        margin-right: 10px;
+        /* Espacio entre el logo y el título */
+    }
+
+    .titulo-principal {
+        font-size: 24px;
+        /* Tamaño del título */
+    }
+</style>
+
+
+
+<style>
+    /* Estilos para el cuerpo de la página */
+    body {
+        overflow-x: hidden;
+        /* Evita el desplazamiento horizontal */
+        margin-top: 60px;
+        /* Ajusta el margen superior para evitar que el contenido se superponga con el encabezado fijo */
+        padding: 20px;
+        /* Espaciado interno para el contenido */
+    }
+
+    /* Estilos para el encabezado (puedes personalizar esto según tu diseño) */
+    header {
+        width: 100%;
+        /* Ancho completo del encabezado */
+        background-color: #333;
+        /* Color de fondo para visualización */
+        color: #fff;
+        /* Color del texto */
+        text-align: center;
+        /* Centra el texto */
+        padding: 20px 0;
+        /* Espaciado interno arriba y abajo */
+        position: fixed;
+        /* Fija el encabezado en la parte superior */
+        top: 0;
+        /* Lo coloca en la parte superior */
+        z-index: 1000;
+        /* Asegura que esté por encima de otros elementos si es necesario */
+    }
+
+    /* Estilos para el contenido principal (puedes personalizar esto según tu diseño) */
+</style>
+
+
+
+
+
+<style>
+    /* Estilos para el contenedor de la tabla */
+    .tabla-contenedor {
+        width: 80%;
+        /* Ancho del contenedor */
+        overflow-x: auto;
+        /* Hace que el contenido desborde y se vuelva desplazable horizontalmente */
+        border: 1px solid #ccc;
+        /* Borde para visualización */
+        margin: 20px auto;
+        /* Ajusta el margen según tus necesidades */
+        padding: 10px;
+        /* Espacio interno para el contenedor */
+        position: relative;
+        /* Establece una posición relativa para poder posicionar las flechas */
+    }
+
+    /* Estilos para las flechas */
+</style>
+
+
+<script>
+    // Función para desplazar la tabla horizontalmente
+    function scrollTabla(amount) {
+        const tabla = document.getElementById('miTabla3');
+        tabla.scrollLeft += amount;
+    }
+</script>
+
+<script>
+    document.getElementById('logout-button').addEventListener('click', function () {
+        // Redirigir a otra página HTML al hacer clic en el botón
+        window.location.href = 'menu.html'; // Reemplaza 'nueva_pagina.html' con la ruta de tu nueva página
+    });
+
+
+
+    // ----------------------------------------------------------------------
+    // para sacar rfc de lista negra
+    // Declara jsonData3 fuera de cualquier función o bloque para hacerla global
+    // var jsonData3;
+
+    document.getElementById("excelFile").addEventListener("change", function (e) {
+        var file = e.target.files[0];
+        var reader = new FileReader();
+
+        reader.onload = function (e) {
+            var data = e.target.result;
+            var workbook = XLSX.read(data, { type: "binary" });
+
+            // Nombre de la hoja de trabajo ("Hoja1" en este caso)
+            var sheetName = "Hoja1";
+            var sheet = workbook.Sheets[sheetName];
+
+            // Convertir la hoja de cálculo en un objeto JSON
+            jsonData3 = XLSX.utils.sheet_to_json(sheet);
+
+            // Resaltar los RFCs en la tabla usando los datos de jsonData3
+            
+            resaltarRFCsEnTabla(jsonData3);
+            resaltarRFCsEnTabla1(jsonData3);
+            resaltarRFCsEnTabla2(jsonData3);
+            resaltarRFCsEnTabla3(jsonData3);
+            resaltarRFCsEnTabla4(jsonData3);
+        };
+
+        reader.readAsBinaryString(file);
+    });
+
+    function resaltarRFCsEnTabla(jsonData3) {
+        // Obtener todas las filas de la tabla con los RFCs
+        var filasTabla = document.querySelectorAll('#miTabla3 tbody tr');
+
+        // Iterar sobre cada fila para comparar RFCs y resaltar si hay coincidencias
+        filasTabla.forEach(function (fila) {
+            var rfcEmisor = fila.cells[5].innerText; // Obtener RFC Emisor (cambiar índice según corresponda)
+           
+
+            // Verificar si los RFCs están en jsonData3
+            if (existeRFCenJsonData(rfcEmisor, jsonData3)) {
+                fila.cells[5].style.backgroundColor = 'red'; // Resaltar el RFC Emisor
+            }
+
+            // if (existeRFCenJsonData(rfcReceptor, jsonData3)) {
+            //     fila.cells[7].style.backgroundColor = 'red'; // Resaltar el RFC Receptor
+            // }
+        });
+    }
+
+    // ---------------------------------------------------------------------
+    function resaltarRFCsEnTabla1(jsonData3) {
+        // Obtener todas las filas de la tabla con los RFCs
+        var filasTabla = document.querySelectorAll('#tabla tbody tr');
+
+        // Iterar sobre cada fila para comparar RFCs y resaltar si hay coincidencias
+        filasTabla.forEach(function (fila) {
+            var rfcEmisor = fila.cells[7].innerText; // Obtener RFC Emisor (cambiar índice según corresponda)
+
+            // Verificar si los RFCs están en jsonData3
+            if (existeRFCenJsonData(rfcEmisor, jsonData3)) {
+                fila.cells[7].style.backgroundColor = 'red'; // Resaltar el RFC Emisor
+            }
+
+            // if (existeRFCenJsonData(rfcReceptor, jsonData3)) {
+            //     fila.cells[7].style.backgroundColor = 'red'; // Resaltar el RFC Receptor
+            // }
+        });
+    }
+
+    // ---------------------------------------------------------------------
+    
+    function resaltarRFCsEnTabla2(jsonData3) {
+        // Obtener todas las filas de la tabla con los RFCs
+        var filasTabla = document.querySelectorAll('#miTabla4 tbody tr');
+
+        // Iterar sobre cada fila para comparar RFCs y resaltar si hay coincidencias
+        filasTabla.forEach(function (fila) {
+            var rfcEmisor = fila.cells[7].innerText; // Obtener RFC Emisor (cambiar índice según corresponda)
+
+            // Verificar si los RFCs están en jsonData3
+            if (existeRFCenJsonData(rfcEmisor, jsonData3)) {
+                fila.cells[7].style.backgroundColor = 'red'; // Resaltar el RFC Emisor
+            }
+
+            // if (existeRFCenJsonData(rfcReceptor, jsonData3)) {
+            //     fila.cells[7].style.backgroundColor = 'red'; // Resaltar el RFC Receptor
+            // }
+        });
+    }
+
+    // ---------------------------------------------------------------------
+    function resaltarRFCsEnTabla3(jsonData3) {
+        // Obtener todas las filas de la tabla con los RFCs
+        var filasTabla = document.querySelectorAll('#miTabla tbody tr');
+
+        // Iterar sobre cada fila para comparar RFCs y resaltar si hay coincidencias
+        filasTabla.forEach(function (fila) {
+            var rfcEmisor = fila.cells[4].innerText; // Obtener RFC Emisor (cambiar índice según corresponda)
+
+            // Verificar si los RFCs están en jsonData3
+            if (existeRFCenJsonData(rfcEmisor, jsonData3)) {
+                fila.cells[4].style.backgroundColor = 'red'; // Resaltar el RFC Emisor
+            }
+
+            // if (existeRFCenJsonData(rfcReceptor, jsonData3)) {
+            //     fila.cells[7].style.backgroundColor = 'red'; // Resaltar el RFC Receptor
+            // }
+        });
+    }
+
+    // ---------------------------------------------------------------------
+    function resaltarRFCsEnTabla4(jsonData3) {
+        // Obtener todas las filas de la tabla con los RFCs
+        var filasTabla = document.querySelectorAll('#miTabla9 tbody tr');
+
+        // Iterar sobre cada fila para comparar RFCs y resaltar si hay coincidencias
+        filasTabla.forEach(function (fila) {
+            var rfcEmisor = fila.cells[18].innerText; // Obtener RFC Emisor (cambiar índice según corresponda)
+
+            // Verificar si los RFCs están en jsonData3
+            if (existeRFCenJsonData(rfcEmisor, jsonData3)) {
+                fila.cells[18].style.backgroundColor = 'red'; // Resaltar el RFC Emisor
+            }
+
+            // if (existeRFCenJsonData(rfcReceptor, jsonData3)) {
+            //     fila.cells[7].style.backgroundColor = 'red'; // Resaltar el RFC Receptor
+            // }
+        });
+    }
+
+    // ---------------------------------------------------------------------
+
+
+
+
+    function existeRFCenJsonData(rfc, jsonData) {
+        // Verificar si el RFC está en jsonData3
+        return jsonData.some(function (item) {
+            return item.__EMPTY === rfc; // Ajustar el nombre de la propiedad que contiene los RFCs en jsonData3
+        });
+    }
+
+
+    // Ahora jsonData3 es una variable global y puedes acceder a ella desde cualquier parte del script
+
+
+    // --------------------------------------------------------------
+</script>
+
+
+
+
+<!-- alexis -->
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.2/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.9.0/dist/jszip.min.js"></script>
+<script>
+  function convertirAYAgregarExcel() {
+    try {
+      const nombreZIP = document.getElementById("nombreZIP").value || "archivo_zip";
+      const nombreCarpeta = nombreZIP.replace('.zip', '');
+
+      const workbook = XLSX.utils.book_new();
+
+      // Procesar Tabla 1
+      const tabla1 = document.getElementById("tabla");
+      const datos1 = procesarTabla(tabla1);
+      const worksheet1 = XLSX.utils.aoa_to_sheet(datos1);
+      XLSX.utils.book_append_sheet(workbook, worksheet1, 'Ingreso');
+
+      // Procesar Tabla 2
+      const tabla2 = document.getElementById("miTabla4");
+      const datos2 = procesarTabla(tabla2);
+      const worksheet2 = XLSX.utils.aoa_to_sheet(datos2);
+      XLSX.utils.book_append_sheet(workbook, worksheet2, 'Traslado');
+
+
+      // Procesar Tabla 3
+      const tabla3 = document.getElementById("miTabla");
+      const datos3 = procesarTabla(tabla3);
+      const worksheet3 = XLSX.utils.aoa_to_sheet(datos3);
+      XLSX.utils.book_append_sheet(workbook, worksheet3, 'Nomina');
+
+
+      // Procesar Tabla 4
+      const tabla4 = document.getElementById("miTabla3");
+      const datos4 = procesarTabla(tabla4);
+      const worksheet4 = XLSX.utils.aoa_to_sheet(datos4);
+      XLSX.utils.book_append_sheet(workbook, worksheet4, 'Pago');
+
+
+      // Procesar Tabla 4
+      const tabla5 = document.getElementById("miTabla9");
+      const datos5 = procesarTabla(tabla5);
+      const worksheet5 = XLSX.utils.aoa_to_sheet(datos5);
+      XLSX.utils.book_append_sheet(workbook, worksheet5, 'NotaCredito');
+
+      const excelBlob = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+
+      const zip = new JSZip();
+      const carpeta = zip.folder(nombreCarpeta);
+      carpeta.file(nombreCarpeta + ".xlsx", excelBlob, { binary: true });
+
+      zip.generateAsync({ type: "blob" })
+        .then(blob => {
+          window.archivoZip = blob;
+          // Mostrar mensaje de éxito
+          document.getElementById("mensajeExito").style.display = "block";
+          // Ocultar el mensaje después de 3 segundos
+          setTimeout(function(){
+            document.getElementById("mensajeExito").style.display = "none";
+          }, 7000);
+          
+        })
+        .catch(error => {
+          console.error('Error al generar el archivo ZIP:', error);
+          // Mostrar mensaje de error
+          document.getElementById("mensajeError").style.display = "block";
+          // Ocultar el mensaje después de 5 segundos
+          setTimeout(function(){
+            document.getElementById("mensajeError").style.display = "none";
+          }, 6000);
+        });
+    } catch (error) {
+      console.error(error);
+      // Mostrar mensaje de error
+      document.getElementById("mensajeError").style.display = "block";
+      // Ocultar el mensaje después de 5 segundos
+      setTimeout(function(){
+        document.getElementById("mensajeError").style.display = "none";
+      }, 5000);
+    }
+
+    
+           
+            
+  }
+
+  function procesarTabla(tabla) {
+    const filas = tabla.querySelectorAll("tr");
+    const datos = [];
+    const encabezados = Array.from(filas[0].querySelectorAll("th")).map(th => th.innerText);
+    datos.push(encabezados);
+
+    filas.forEach(function(fila, rowIndex) {
+      if (rowIndex !== 0) {
+        const columnas = fila.querySelectorAll("td");
+        const rowData = [];
+        columnas.forEach(function(columna) {
+          rowData.push(columna.innerText);
+        });
+        datos.push(rowData);
+      }
+    });
+
+    return datos;
+  }
+
+  function descargarZIP() {
+    if (window.archivoZip) {
+      const nombreZIP = document.getElementById("nombreZIP").value || "archivo_zip";
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(window.archivoZip);
+      link.download = nombreZIP + ".zip";
+      link.click();
+      document.getElementById("nombreZIP").value = ""; // Limpiar campo después de la descarga
+    } else {
+      alert("Primero convierte y agrega los archivos Excel al ZIP.");
+    }
+    
+  }
+</script>
